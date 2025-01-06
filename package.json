@@ -13,9 +13,10 @@
     "react": "~18.3.1",
     "react-dom": "~18.3.1",
     "react-native": "0.76.3",
-    "react-native-svg": "~15.8.0",
+    "react-native-svg": "13.9.0",
     "react-native-svg-transformer": "~1.5.0",
-    "react-native-web": "~0.19.13"
+    "react-native-web": "~0.19.13",
+    "hermes-engine": "0.72.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
@@ -23,7 +24,7 @@
     "@nx/devkit": "20.3.0",
     "@nx/eslint": "20.3.0",
     "@nx/eslint-plugin": "20.3.0",
-    "@nx/expo": "20.3.0",
+    "@nx/expo": "^20.1.4",
     "@nx/jest": "20.3.0",
     "@nx/js": "20.3.0",
     "@nx/playwright": "20.3.0",

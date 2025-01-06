@@ -8,10 +8,14 @@
     "metro-config": "*",
     "react-native": "*",
     "expo": "*",
-    "react-native-svg": "*",
-    "react-native-web": "*"
+    "react-native-svg": "13.9.0",
+    "react-native-web": "*",
+    "react": "18.3.1",
+    "hermes-engine": "0.72.4"
   },
   "scripts": {
-    "eas-build-post-install": "cd ../../ && node tools/scripts/eas-build-post-install.mjs . apps/meal-panner2"
+    "eas-build-post-install": "cd ../../ && node tools/scripts/eas-build-post-install.mjs . apps/meal-panner2",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   }
 }
