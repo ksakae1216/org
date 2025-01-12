@@ -12,7 +12,7 @@
     "@testing-library/jest-native": "*",
     "@testing-library/react-native": "*",
     "expo": "*",
-    "hermes-engine": "0.72.4",
+    "hermes-engine": "0.10.0",
     "metro-config": "*",
     "react": "18.3.1",
     "react-native": "*",

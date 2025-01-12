@@ -27,10 +27,10 @@ jobs:
       # Cache node_modules
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: '18.18.0'
+          cache: 'yarn'
 
-      - run: npm ci --legacy-peer-deps
+      - run: yarn install --frozen-lockfile
       - run: npx playwright install --with-deps
       - uses: nrwl/nx-set-shas@v4
 
