@@ -2,7 +2,9 @@
   "name": "@org/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "install": "cross-env NODE_OPTIONS='--experimental-vm-modules --experimental-import-meta-resolve' yarn install"
+  },
   "private": true,
   "dependencies": {
     "@expo/metro-config": "~0.19.4",
