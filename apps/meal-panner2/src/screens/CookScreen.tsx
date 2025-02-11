@@ -6,9 +6,9 @@ import CalendarStrip from 'react-native-calendar-strip';
 import { Button, Card, Text, useTheme } from 'react-native-paper';
 import type { RootStackParamList } from '../types/navigation';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Parent'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'Cook'>;
 
-export const ParentScreen = ({ navigation }: Props) => {
+export const CookScreen = ({ navigation }: Props) => {
   const theme = useTheme();
 
   // TODO: 実際のデータを取得する処理を実装

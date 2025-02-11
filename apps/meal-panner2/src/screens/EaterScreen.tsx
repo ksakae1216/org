@@ -5,9 +5,9 @@ import { StyleSheet, View } from 'react-native';
 import { Button, Switch, Text, useTheme } from 'react-native-paper';
 import type { RootStackParamList } from '../types/navigation';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Child'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'Eater'>;
 
-export const ChildScreen = ({ navigation }: Props) => {
+export const EaterScreen = ({ navigation }: Props) => {
   const theme = useTheme();
   const [breakfast, setBreakfast] = useState(false);
   const [lunch, setLunch] = useState(false);

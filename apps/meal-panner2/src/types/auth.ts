@@ -1,4 +1,4 @@
-export type UserRole = 'parent' | 'child';
+export type UserRole = 'cook' | 'eater';
 
 export interface User {
   uid: string;
