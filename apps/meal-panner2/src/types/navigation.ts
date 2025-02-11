@@ -1,5 +1,5 @@
 export type RootStackParamList = {
   Auth: undefined;
-  Child: undefined;
-  Parent: undefined;
+  Eater: undefined;
+  Cook: undefined;
 };

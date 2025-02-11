@@ -3,18 +3,17 @@ import firestore from '@react-native-firebase/firestore';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, SegmentedButtons, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import type { UserRole } from '../types/auth';
 import { RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Auth'>;
 
 export const AuthScreen = ({ navigation }: Props) => {
-  const theme = useTheme();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('child');
+  const [role, setRole] = useState<UserRole>('eater');
   const [error, setError] = useState('');
 
   const handleAuth = async () => {
@@ -27,31 +26,36 @@ export const AuthScreen = ({ navigation }: Props) => {
         const userDoc = await firestore().collection('users').doc(userCredential.user.uid).get();
         const userData = userDoc.data();
 
-        if (userData?.role === 'parent') {
-          navigation.replace('Parent');
+        if (userData?.role === 'cook') {
+          navigation.replace('Cook');
         } else {
-          navigation.replace('Child');
+          navigation.replace('Eater');
         }
       } else {
         // 新規登録処理
         const userCredential = await auth().createUserWithEmailAndPassword(email, password);
         // Firestoreにユーザー情報を保存
         await firestore().collection('users').doc(userCredential.user.uid).set({
-          email,
           role,
+          email,
           createdAt: firestore.FieldValue.serverTimestamp(),
         });
 
-        if (role === 'parent') {
-          navigation.replace('Parent');
+        if (role === 'cook') {
+          navigation.replace('Cook');
         } else {
-          navigation.replace('Child');
+          navigation.replace('Eater');
         }
       }
     } catch (err: any) {
       setError(err.message);
     }
   };
+
+  const roleOptions = [
+    { value: 'cook', label: '作る人' },
+    { value: 'eater', label: '食べる人' },
+  ];
 
   return (
     <View style={styles.container}>
@@ -80,10 +84,7 @@ export const AuthScreen = ({ navigation }: Props) => {
         <SegmentedButtons
           value={role}
           onValueChange={value => setRole(value as UserRole)}
-          buttons={[
-            { value: 'parent', label: '親' },
-            { value: 'child', label: '子供' },
-          ]}
+          buttons={roleOptions}
           style={styles.roleSelector}
         />
       )}
