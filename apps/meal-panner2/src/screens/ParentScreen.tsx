@@ -1,9 +1,10 @@
+import auth from '@react-native-firebase/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import CalendarStrip from 'react-native-calendar-strip';
-import { Card, Text, useTheme } from 'react-native-paper';
-import type { RootStackParamList } from '../navigation/AppNavigator';
+import { Button, Card, Text, useTheme } from 'react-native-paper';
+import type { RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Parent'>;
 
@@ -15,6 +16,15 @@ export const ParentScreen = ({ navigation }: Props) => {
     breakfast: true,
     lunch: false,
     dinner: true,
+  };
+
+  const handleLogout = async () => {
+    try {
+      await auth().signOut();
+      navigation.replace('Auth');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const renderMealStatus = (meal: string, status: boolean) => (
@@ -33,6 +43,18 @@ export const ParentScreen = ({ navigation }: Props) => {
 
   return (
     <View style={styles.container}>
+      <Text variant="headlineMedium" style={styles.title}>
+        食事予定確認
+      </Text>
+
+      <Button
+        mode="outlined"
+        onPress={handleLogout}
+        style={styles.logoutButton}
+      >
+        ログアウト
+      </Button>
+
       <CalendarStrip
         style={styles.calendar}
         calendarColor="#ffffff"
@@ -63,7 +85,16 @@ export const ParentScreen = ({ navigation }: Props) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 16,
     backgroundColor: '#fff',
+  },
+  title: {
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  logoutButton: {
+    marginTop: 16,
+    padding: 8,
   },
   calendar: {
     height: 100,
