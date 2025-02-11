@@ -1,8 +1,9 @@
+import auth from '@react-native-firebase/auth';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Switch, Text, useTheme } from 'react-native-paper';
-import type { RootStackParamList } from '../navigation/AppNavigator';
+import type { RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Child'>;
 
@@ -15,6 +16,15 @@ export const ChildScreen = ({ navigation }: Props) => {
   const handleSubmit = () => {
     // TODO: データを保存する処理を実装
     console.log({ breakfast, lunch, dinner });
+  };
+
+  const handleLogout = async () => {
+    try {
+      await auth().signOut();
+      navigation.replace('Auth');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -58,11 +68,11 @@ export const ChildScreen = ({ navigation }: Props) => {
       </Button>
 
       <Button
-        mode="text"
-        onPress={() => navigation.navigate('Parent')}
-        style={styles.parentButton}
+        mode="outlined"
+        onPress={handleLogout}
+        style={styles.logoutButton}
       >
-        親用画面へ
+        ログアウト
       </Button>
     </View>
   );
@@ -89,7 +99,8 @@ const styles = StyleSheet.create({
     marginTop: 32,
     padding: 8,
   },
-  parentButton: {
+  logoutButton: {
     marginTop: 16,
+    padding: 8,
   },
 });
