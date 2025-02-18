@@ -1,30 +1,65 @@
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword } from '@react-native-firebase/auth';
+import { addDoc, arrayUnion, collection, doc, getDoc, getDocs, getFirestore, limit, query, setDoc, updateDoc, where } from '@react-native-firebase/firestore';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { Button, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import type { UserRole } from '../types/auth';
 import { RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Auth'>;
 
+
+const getErrorMessage = (error: any): string => {
+  if (error.code === 'firestore/unavailable') {
+    return 'サービスに接続できません。しばらく待ってから再度お試しください。';
+  }
+  if (error.code === 'auth/invalid-email') {
+    return 'メールアドレスの形式が正しくありません。';
+  }
+  if (error.code === 'auth/wrong-password') {
+    return 'パスワードが間違っています。';
+  }
+  if (error.code === 'auth/user-not-found') {
+    return 'アカウントが見つかりません。';
+  }
+  if (error.code === 'auth/email-already-in-use') {
+    return 'このメールアドレスは既に使用されています。';
+  }
+  return error.message || 'エラーが発生しました。しばらく待ってから再度お試しください。';
+};
+
 export const AuthScreen = ({ navigation }: Props) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('eater');
+  const [groupCode, setGroupCode] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const getUserData = async (uid: string): Promise<any> => {
+    const auth = getAuth();
+    const db = getFirestore(auth.app, 'meal-planner-db');
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (userDoc.exists) {
+      return userDoc.data();
+    } else {
+      return null;
+    }
+  };
 
   const handleAuth = async () => {
     try {
       setError('');
+      setIsLoading(true);
+      const auth = getAuth();
+      const db = getFirestore(auth.app, 'meal-planner-db');
+
       if (isLogin) {
-        // ログイン処理
-        const userCredential = await auth().signInWithEmailAndPassword(email, password);
-        // Firestoreからユーザーのrole情報を取得
-        const userDoc = await firestore().collection('users').doc(userCredential.user.uid).get();
-        const userData = userDoc.data();
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const userData = await getUserData(userCredential.user.uid);
 
         if (userData?.role === 'cook') {
           navigation.replace('Cook');
@@ -32,14 +67,71 @@ export const AuthScreen = ({ navigation }: Props) => {
           navigation.replace('Eater');
         }
       } else {
-        // 新規登録処理
-        const userCredential = await auth().createUserWithEmailAndPassword(email, password);
-        // Firestoreにユーザー情報を保存
-        await firestore().collection('users').doc(userCredential.user.uid).set({
-          role,
-          email,
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        });
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const uid = userCredential.user.uid;
+
+        let groupId = '';
+        let newGroupCode = '';
+
+        if (groupCode) {
+          // 既存のグループに参加
+          const groupsRef = collection(db, 'groups');
+          const q = query(groupsRef, where('code', '==', groupCode), limit(1));
+          const groupSnapshot = await getDocs(q);
+
+          if (groupSnapshot.empty) {
+            throw new Error('指定されたグループが見つかりません');
+          }
+
+          groupId = groupSnapshot.docs[0].id;
+          const groupRef = doc(db, 'groups', groupId);
+
+          // グループのメンバーリストを更新
+          if (role === 'cook') {
+            await updateDoc(groupRef, {
+              cookIds: arrayUnion(uid)
+            });
+          } else {
+            await updateDoc(groupRef, {
+              eaterIds: arrayUnion(uid)
+            });
+          }
+        } else {
+          newGroupCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+          const simpleGroupData = {
+            name: `${displayName}のグループ`,
+            code: newGroupCode,
+            cookIds: [uid],
+            eaterIds: [],
+          };
+
+          const groupDocRef = await addDoc(collection(db, 'groups'), simpleGroupData);
+          groupId = groupDocRef.id;
+
+          const userData = {
+            role,
+            email,
+            displayName,
+            groupId: groupDocRef.id,
+          };
+
+          const userRef = doc(db, 'users', uid);
+          await setDoc(userRef, userData);
+
+          // グループ作成時にグループコードを表示
+          Alert.alert(
+            'グループを作成しました',
+            `グループコード: ${newGroupCode}\n\nこのコードを食べる人に共有してください。`,
+            [{ text: 'OK', onPress: () => {
+              if (role === 'cook') {
+                navigation.replace('Cook');
+              } else {
+                navigation.replace('Eater');
+              }
+            }}]
+          );
+          return; // Alertのコールバックでナビゲーションを処理するため、ここで終了
+        }
 
         if (role === 'cook') {
           navigation.replace('Cook');
@@ -47,8 +139,12 @@ export const AuthScreen = ({ navigation }: Props) => {
           navigation.replace('Eater');
         }
       }
+
+
     } catch (err: any) {
-      setError(err.message);
+      setError(getErrorMessage(err));
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -56,6 +152,14 @@ export const AuthScreen = ({ navigation }: Props) => {
     { value: 'cook', label: '作る人' },
     { value: 'eater', label: '食べる人' },
   ];
+
+  // グループコードの入力をクリアする
+  const handleRoleChange = (value: string) => {
+    setRole(value as UserRole);
+    if (value === 'cook') {
+      setGroupCode('');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -81,12 +185,31 @@ export const AuthScreen = ({ navigation }: Props) => {
       />
 
       {!isLogin && (
-        <SegmentedButtons
-          value={role}
-          onValueChange={value => setRole(value as UserRole)}
-          buttons={roleOptions}
-          style={styles.roleSelector}
-        />
+        <>
+          <TextInput
+            label="表示名"
+            value={displayName}
+            onChangeText={setDisplayName}
+            style={styles.input}
+          />
+
+          <SegmentedButtons
+            value={role}
+            onValueChange={handleRoleChange}
+            buttons={roleOptions}
+            style={styles.roleSelector}
+          />
+
+          <TextInput
+            label="グループコード"
+            value={groupCode}
+            onChangeText={setGroupCode}
+            autoCapitalize="characters"
+            style={styles.input}
+            disabled={role === 'cook'}
+            placeholder={role === 'cook' ? '作る人は入力不要です' : '参加したいグループコードを入力'}
+          />
+        </>
       )}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -95,6 +218,8 @@ export const AuthScreen = ({ navigation }: Props) => {
         mode="contained"
         onPress={handleAuth}
         style={styles.button}
+        loading={isLoading}
+        disabled={isLoading}
       >
         {isLogin ? 'ログイン' : '新規登録'}
       </Button>
