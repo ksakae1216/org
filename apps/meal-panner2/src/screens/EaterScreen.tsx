@@ -1,12 +1,12 @@
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+import { getAuth } from '@react-native-firebase/auth';
+import { collection, doc, getDoc, getDocs, getFirestore, limit, query, serverTimestamp, setDoc, where } from '@react-native-firebase/firestore';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import moment from 'moment';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import CalendarStrip from 'react-native-calendar-strip';
 import { Button, Switch, Text, useTheme } from 'react-native-paper';
-import type { Group, User } from '../types/auth';
+import type { Group } from '../types/auth';
 import type { RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Eater'>;
@@ -29,32 +29,37 @@ export const EaterScreen = ({ navigation }: Props) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const currentUser = auth().currentUser;
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
         if (!currentUser) {
           navigation.replace('Auth');
           return;
         }
 
-        // ユーザー情報を取得
-        const userDoc = await firestore().collection('users').doc(currentUser.uid).get();
-        const userData = userDoc.data() as User;
+        const db = getFirestore(auth.app, 'meal-planner-db');
 
-        if (!userData.groupId) {
-          // TODO: グループに所属していない場合の処理
+        // グループを検索 - eaterIdsに自分のIDが含まれているグループを探す
+        const groupsRef = collection(db, 'groups');
+        const q = query(
+          groupsRef,
+          where('eaterIds', 'array-contains', currentUser.uid),
+          limit(1)
+        );
+        const groupSnapshot = await getDocs(q);
+
+        if (groupSnapshot.empty) {
+          // グループに所属していない場合の処理
           return;
         }
 
-        // グループ情報を取得
-        const groupDoc = await firestore().collection('groups').doc(userData.groupId).get();
+        const groupDoc = groupSnapshot.docs[0];
         const groupData = { id: groupDoc.id, ...groupDoc.data() } as Group;
         setGroup(groupData);
 
         // 選択された日付の食事予定を取得
         const dateString = selectedDate.toISOString().split('T')[0];
-        const mealStatusDoc = await firestore()
-          .collection('mealStatus')
-          .doc(`${currentUser.uid}_${dateString}`)
-          .get();
+        const mealStatusRef = doc(db, 'mealStatus', `${currentUser.uid}_${dateString}`);
+        const mealStatusDoc = await getDoc(mealStatusRef);
 
         if (mealStatusDoc.exists) {
           const status = mealStatusDoc.data() as MealStatus;
@@ -81,21 +86,22 @@ export const EaterScreen = ({ navigation }: Props) => {
   const handleSubmit = async () => {
     try {
       setIsSaving(true);
-      const currentUser = auth().currentUser;
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
       if (!currentUser) return;
 
+      const db = getFirestore(auth.app, 'meal-planner-db');
       const dateString = selectedDate.toISOString().split('T')[0];
-      await firestore()
-        .collection('mealStatus')
-        .doc(`${currentUser.uid}_${dateString}`)
-        .set({
-          breakfast,
-          lunch,
-          dinner,
-          userId: currentUser.uid,
-          date: dateString,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
+      const mealStatusRef = doc(db, 'mealStatus', `${currentUser.uid}_${dateString}`);
+
+      await setDoc(mealStatusRef, {
+        breakfast,
+        lunch,
+        dinner,
+        userId: currentUser.uid,
+        date: dateString,
+        updatedAt: serverTimestamp(),
+      });
 
       // TODO: 保存成功のフィードバックを表示
     } catch (error) {
@@ -108,7 +114,7 @@ export const EaterScreen = ({ navigation }: Props) => {
 
   const handleLogout = async () => {
     try {
-      await auth().signOut();
+      await getAuth().signOut();
       navigation.replace('Auth');
     } catch (error) {
       console.error('Logout error:', error);

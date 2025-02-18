@@ -86,6 +86,17 @@ export const AuthScreen = ({ navigation }: Props) => {
           groupId = groupSnapshot.docs[0].id;
           const groupRef = doc(db, 'groups', groupId);
 
+          // ユーザーデータを作成
+          const userData = {
+            role,
+            email,
+            displayName,
+            groupId,
+          };
+
+          const userRef = doc(db, 'users', uid);
+          await setDoc(userRef, userData);
+
           // グループのメンバーリストを更新
           if (role === 'cook') {
             await updateDoc(groupRef, {
